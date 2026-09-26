@@ -1,0 +1,9 @@
+{
+  "knowledge_path": "knowledge.md",
+  "chroma_path": "chroma",
+  "ollama_host": "http://localhost:11434",
+  "chat_model": "qwen3:0.6b",
+  "embedding_model": "qwen3-embedding:0.6b",
+  "top_k": 5,
+  "max_chunk_chars": 700
+}

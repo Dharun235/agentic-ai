@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local vector database
+chroma/
+
+# Environment and local configuration
+.env
+.env.*
+
+# Local configuration overrides
+config.local.json
+
+# macOS
+.DS_Store
+
+# Tooling
+.pytest_cache/
+.ruff_cache/

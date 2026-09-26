@@ -1,0 +1,26 @@
+[
+  {
+    "question": "How long do customers have to return a product?",
+    "expected_answer": "30 days"
+  },
+  {
+    "question": "What condition must the product be in to be returned?",
+    "expected_answer": "unused and in its original packaging"
+  },
+  {
+    "question": "How long does it take to process a refund?",
+    "expected_answer": "5 business days"
+  },
+  {
+    "question": "When is technical support available?",
+    "expected_answer": "Monday through Friday"
+  },
+  {
+    "question": "How can customers contact technical support?",
+    "expected_answer": "email"
+  },
+  {
+    "question": "How long does standard shipping take?",
+    "expected_answer": "3 to 5 business days"
+  }
+]

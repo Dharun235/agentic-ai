@@ -1,0 +1,4 @@
+chromadb
+ollama
+tqdm
+llama-index-core
