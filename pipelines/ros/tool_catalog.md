@@ -19,7 +19,7 @@ Server runs over MCP stdio. Client starts this server; tools call live `ros2` co
 
 ## Safe demo lifecycle
 
-- `start_ros_demo_node`: starts configured `ROS2_DOCKER_CONTAINER`, then verifies `/agentic_demo_node`.
+- `start_ros_demo_node`: starts configured `ROS2_DOCKER_CONTAINER`, then verifies `/ros_agent_demo_node`.
 - `stop_ros_demo_node`: stops configured demo container, then verifies node disappears.
 
 Every action returns observed verification. If ROS2 or container config is unavailable, agent reports exact reason.

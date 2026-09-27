@@ -175,7 +175,7 @@ def start_demo_node() -> str:
         return result
     time.sleep(1)
     nodes = list_nodes()
-    if "/agentic_demo_node" not in nodes.splitlines():
+    if "/ros_agent_demo_node" not in nodes.splitlines():
         return f"Action uncertain: container started but demo node was not observed.\n{nodes}"
     return f"Action verified: demo node is running.\n{nodes}"
 
@@ -187,6 +187,6 @@ def stop_demo_node() -> str:
         return result
     time.sleep(1)
     nodes = list_nodes()
-    if "/agentic_demo_node" in nodes.splitlines():
+    if "/ros_agent_demo_node" in nodes.splitlines():
         return f"Action uncertain: container stopped but demo node remains visible.\n{nodes}"
     return "Action verified: demo node is stopped."

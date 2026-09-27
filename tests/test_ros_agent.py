@@ -31,15 +31,15 @@ class FakeMCP:
     def call(self, name, arguments):
         self.calls.append((name, arguments))
         return {
-            "list_ros_nodes": "/agentic_demo_node",
+            "list_ros_nodes": "/ros_agent_demo_node",
             "list_ros_topics": "/rosout",
-            "list_ros_services": "/agentic_demo_node/get_parameters",
+            "list_ros_services": "/ros_agent_demo_node/get_parameters",
             "list_ros_actions": "No ROS 2 objects found.",
-            "ros_node_info": "/agentic_demo_node\n  Publishers: /rosout",
+            "ros_node_info": "/ros_agent_demo_node\n  Publishers: /rosout",
             "ros_topic_info": "Type: rcl_interfaces/msg/Log",
             "ros_service_info": "rcl_interfaces/srv/GetParameters",
             "ros_action_info": "No ROS 2 objects found.",
-            "ros_system_snapshot": "NODES:\n/agentic_demo_node",
+            "ros_system_snapshot": "NODES:\n/ros_agent_demo_node",
             "ros2_runtime_status": "container_ros2: available",
             "start_ros_demo_node": "Action verified: demo node is running.",
             "stop_ros_demo_node": "Action verified: demo node is stopped.",
@@ -52,7 +52,7 @@ def test_supported_ros_requests_route_to_expected_tools():
         "show all ROS2 topics": "list_ros_topics",
         "show all ROS2 services": "list_ros_services",
         "show all ROS2 actions": "list_ros_actions",
-        "inspect agentic_demo_node": "ros_node_info",
+        "inspect ros_agent_demo_node": "ros_node_info",
         "inspect topic /rosout": "ros_topic_info",
         "check ROS2 setup": "ros2_runtime_status",
         "start the ROS2 demo node": "start_ros_demo_node",

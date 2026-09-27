@@ -6,7 +6,7 @@ from rclpy.node import Node
 
 class AgenticDemoNode(Node):
     def __init__(self):
-        super().__init__("agentic_demo_node")
+        super().__init__("ros_agent_demo_node")
         self.timer = self.create_timer(2.0, self._tick)
 
     def _tick(self):
@@ -25,4 +25,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
