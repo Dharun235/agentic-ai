@@ -33,6 +33,26 @@ Run:
 python common_app.py
 ```
 
+## User interaction
+
+```text
+ROS 2 agent ready. Type exit or quit to stop.
+Ask: check ROS2 and give all nodes
+
+[complete] Verified tool output from `list_ros_nodes`:
+/ros_agent_demo_node
+
+Ask: show all ROS2 topics
+
+[complete] Verified tool output from `list_ros_topics`:
+/parameter_events
+/rosout
+
+Ask: what is the weather?
+
+[failed] Cannot complete: request is outside this agent's scope.
+```
+
 ## Example asks
 
 ```text
