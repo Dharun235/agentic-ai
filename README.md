@@ -50,7 +50,7 @@ Ask: show all ROS2 topics
 
 Ask: what is the weather?
 
-[failed] Cannot complete: request is outside this agent's scope.
+[failed] Cannot complete: request is outside this agent's scope. This agent only handles ROS2 nodes, topics, services, actions, parameters, QoS, and graph inspection.
 ```
 
 ## Example asks
