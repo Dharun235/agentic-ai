@@ -1,4 +1,2 @@
-chromadb
 ollama
-tqdm
-llama-index-core
+mcp[cli]

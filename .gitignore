@@ -4,8 +4,10 @@ __pycache__/
 .venv/
 venv/
 
-# Local vector database
+# Legacy/generated runtime data
 chroma/
+*.log
+logs/
 
 # Environment and local configuration
 .env
@@ -20,3 +22,9 @@ config.local.json
 # Tooling
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/

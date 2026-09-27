@@ -1,0 +1,11 @@
+[project]
+name = "ros-agent"
+version = "0.1.0"
+description = "Small local ROS2 agent with a dedicated MCP server and client"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
