@@ -4,8 +4,8 @@ __pycache__/
 .venv/
 venv/
 
-# Legacy/generated runtime data
-chroma/
+# Generated runtime data
+data/
 *.log
 logs/
 

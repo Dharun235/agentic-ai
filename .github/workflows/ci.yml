@@ -13,8 +13,8 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install -r requirements.txt pytest
+        run: pip install -e ".[dev]"
       - name: Compile Python
-        run: python -m compileall -q pipelines common_app.py tests
+        run: python -m compileall -q pipelines tests scripts web_app.py
       - name: Run pipeline tests
         run: pytest -q

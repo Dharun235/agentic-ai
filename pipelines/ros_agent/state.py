@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 @dataclass
 class AgentState:
     task: str
+    run_name: str
     max_steps: int = 8
     status: str = "running"
     phase: str = "planning"
@@ -17,6 +18,7 @@ class AgentState:
     verification: str | None = None
     failure_reason: str | None = None
     answer: str | None = None
+    tasks: list[dict] = field(default_factory=list)
 
     def __post_init__(self):
         self.goal = self.task

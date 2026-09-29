@@ -2,7 +2,15 @@
 
 Agent scope: ROS 2 graph discovery and one safe demo-node lifecycle. No robot behavior.
 
-Server runs over MCP stdio. Client starts this server; tools call live `ros2` commands on host or in `ROS2_DOCKER_CONTAINER`. No RAG or cached knowledge is involved.
+The native server runs beside ROS2 and exposes the tools over MCP Streamable
+HTTP. Tools call the live host `ros2` CLI; they do not inspect a container or a
+cached graph.
+
+The catalog is the agent's tool map. Chroma and Ollama embeddings retrieve relevant
+guidance and candidate MCP schemas for the LLMCompiler planner. The planner emits
+an executable DAG; the scheduler executes exact assigned tools and saves raw task
+results before the joiner answers. Catalog text describes tool choice; MCP output
+supplies live ROS2 truth. Runtime ROS2 facts are never embedded or cached here.
 
 ## Read-only graph tools
 
@@ -15,11 +23,38 @@ Server runs over MCP stdio. Client starts this server; tools call live `ros2` co
 - `list_ros_actions`: discovered action names and types.
 - `ros_action_info(action)`: action servers/clients and type.
 - `ros_system_snapshot`: nodes, topics, services, actions in one observation.
-- `ros2_runtime_status`: whether host/container `ros2`, Docker, and configured container are available.
+- `ros2_runtime_status`: whether the native host ROS2 CLI is available.
 
-## Safe demo lifecycle
+## Extended inspection tools
 
-- `start_ros_demo_node`: starts configured `ROS2_DOCKER_CONTAINER`, then verifies `/ros_agent_demo_node`.
-- `stop_ros_demo_node`: stops configured demo container, then verifies node disappears.
+Parameter tools: `list_node_parameters(node)`, `get_node_parameter(node, name)`,
+`get_node_parameters(node)`, `describe_node_parameters(node)`, and
+`use_sim_time_status(node)`.
 
-Every action returns observed verification. If ROS2 or container config is unavailable, agent reports exact reason.
+Topic runtime tools: `ros_topic_echo(topic, message_count)`,
+`ros_topic_hz(topic)`, `ros_topic_bw(topic)`, and `ros_topic_type(topic)`.
+Echo is bounded to ten one-shot messages maximum.
+
+Interface tools: `ros_message_info(type)`, `ros_service_definition(type)`, and
+`ros_action_definition(type)`.
+
+Graph tools: `ros_node_graph(node)`, `find_topic_publishers(topic)`,
+`find_topic_subscribers(topic)`, `find_unconnected_topics()`, and
+`ros_graph_snapshot()`.
+
+TF2 tools: `list_tf_frames()`, `tf_frame_info(frame)`,
+`tf_transform(source, target)`, and `tf_tree_snapshot()`.
+
+Runtime tools: `list_processes()`, `list_ros_daemons()`, `ros_domain_id()`,
+`ros_environment_status()`, and `inspect_launch_processes()`.
+
+Diagnostics: `list_diagnostics()`, `get_diagnostic_status()`,
+`check_node_health(node)`, and `check_topic_health(topic)`.
+
+Time tools: `ros_time_status()` and `clock_topic_status()`.
+`use_sim_time_status(node)` requires a concrete node named by the user or
+returned by an earlier task; never invent a node name. If no node is named,
+use the node-independent time tools only.
+
+All inspection commands have bounded execution. Runtime actions remain limited
+to the explicitly supported demo-node lifecycle tools.
