@@ -5,8 +5,8 @@ Agent scope: ROS 2 graph discovery and one safe demo-node lifecycle. No robot be
 The MCP server runs beside ROS 2 and exposes tools over Streamable HTTP when
 needed. Tools call the live `ros2` CLI; they do not use a cached graph.
 
-The catalog is the agent's tool map. Chroma and Ollama embeddings retrieve relevant
-guidance and candidate MCP schemas for the LLMCompiler planner. The planner emits
+The catalog is the agent's tool map. OpenSearch combines BM25 and Ollama dense
+vectors to retrieve relevant guidance and candidate MCP schemas for the planner. The planner emits
 an executable DAG; the scheduler executes exact assigned tools and saves raw task
 results before the joiner answers. Catalog text describes tool choice; MCP output
 supplies live ROS2 truth. Runtime ROS2 facts are never embedded or cached here.

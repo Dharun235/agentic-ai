@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import os
 import shutil
+import ssl
 import subprocess
 import sys
 from pathlib import Path
@@ -62,6 +64,44 @@ def check_ollama() -> bool:
         return report("Ollama", False, str(error))
 
 
+def check_opensearch() -> bool:
+    """Check OpenSearch and its cluster health endpoint."""
+    base = os.getenv("OPENSEARCH_URL", "http://127.0.0.1:9200").rstrip("/")
+    request = Request(f"{base}/_cluster/health")
+    username = os.getenv("OPENSEARCH_USERNAME", "")
+    password = os.getenv("OPENSEARCH_PASSWORD", "")
+    if username or password:
+        if not username or not password:
+            return report(
+                "OpenSearch credentials", False,
+                "set both OPENSEARCH_USERNAME and OPENSEARCH_PASSWORD",
+            )
+        token = base64.b64encode(f"{username}:{password}".encode()).decode()
+        request.add_header("Authorization", f"Basic {token}")
+
+    verify = os.getenv("OPENSEARCH_VERIFY_CERTS", "true").strip().lower() not in {
+        "0", "false", "no", "off"
+    }
+    ca_cert = os.getenv("OPENSEARCH_CA_CERT", "")
+    try:
+        if verify:
+            context = ssl.create_default_context(cafile=ca_cert or None)
+        else:
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+        with urlopen(request, timeout=5, context=context) as response:
+            payload = json.load(response)
+        status = payload.get("status", "unknown")
+        return report(
+            "OpenSearch cluster",
+            status in {"green", "yellow"},
+            f"{base} ({status})",
+        )
+    except Exception as error:
+        return report("OpenSearch", False, str(error))
+
+
 def check_mcp_endpoint(url: str) -> bool:
     """Perform an MCP initialize and tools/list handshake without the SDK."""
     headers = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}
@@ -116,6 +156,7 @@ def check_running() -> bool:
     ok &= check_url("agent", "http://127.0.0.1:8000/observability")
     phoenix_url = os.getenv("PHOENIX_HEALTH_URL", "http://127.0.0.1:6006").rstrip("/")
     ok &= check_url("Phoenix", phoenix_url + "/v1/healthz")
+    ok &= check_opensearch()
     ok &= check_ollama()
     ok &= check_ros()
     return bool(ok)

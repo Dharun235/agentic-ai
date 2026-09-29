@@ -61,7 +61,32 @@ Keep it running at <http://127.0.0.1:6006>. Set
 `PHOENIX_COLLECTOR_ENDPOINT`, `PHOENIX_HEALTH_URL`, or `PHOENIX_UI_URL` to
 change its endpoints.
 
-### 5. Start the web app
+### 5. Install and start OpenSearch
+
+Install OpenSearch 2.19 or newer using the
+[official installation guide](https://docs.opensearch.org/latest/install-and-configure/).
+The agent uses OpenSearch k-NN vectors and BM25, fused with reciprocal-rank
+fusion. Ollama creates the document and query embeddings. OpenSearch stores the
+tool cards, vector index, and search pipeline.
+
+Start OpenSearch and configure its endpoint and credentials. The defaults target
+an unauthenticated local service at `http://127.0.0.1:9200`; keep that setup on
+localhost only. For secured HTTPS deployments, set the URL, username, password,
+and trusted CA certificate as needed:
+
+```bash
+export OPENSEARCH_URL=https://localhost:9200
+export OPENSEARCH_USERNAME=admin
+export OPENSEARCH_PASSWORD='your-local-password'
+export OPENSEARCH_CA_CERT=/path/to/root-ca.pem
+```
+
+The app creates a versioned index and atomically switches the
+`ros2-tool-catalog` alias when the catalog or embedding model changes. It also
+creates an RRF search pipeline. Keep an old index until the replacement has
+been indexed successfully; the app removes stale catalog indexes after switch.
+
+### 6. Start the web app
 
 In another terminal, source ROS 2 and activate the environment again. Then run:
 
@@ -91,8 +116,8 @@ Set `ROS_MCP_URL=http://127.0.0.1:8001/mcp` in the app terminal.
 
 ## Check setup
 
-Run the prerequisite checker after starting Ollama, Phoenix, and the app. Source
-ROS 2 first so it can check local ROS discovery.
+Run the prerequisite checker after starting Ollama, OpenSearch, Phoenix, and the
+app. Source ROS 2 first so it can check local ROS discovery.
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -112,8 +137,8 @@ python -m compileall -q pipelines tests scripts web_app.py
 
 Each task is isolated under `data/runs/<name>/`. Files include lifecycle
 metadata, validated plan, raw MCP observations, progress events, model-call
-metadata, SQLite checkpoints, and exact results. Chroma's tool catalog index
-is stored under `data/chroma/` by default.
+metadata, SQLite checkpoints, and exact results. OpenSearch stores the tool
+catalog index outside the run-data directory.
 
 Phoenix traces retrieval, planning, validation, approval, MCP execution, and
 answer generation. Runs do not start if Phoenix is unavailable. Runtime ROS 2
