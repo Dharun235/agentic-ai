@@ -110,7 +110,9 @@ class RunStore:
             task_id = observation.get("task_id", "unknown")
             self._write_json(self.path / "results" / f"task-{task_id}.json", observation)
         for event in result.get("events", []):
-            self.event("graph", event.get("kind", "event"), **{k: v for k, v in event.items() if k != "kind"})
+            component = event.get("component", "graph")
+            data = {k: v for k, v in event.items() if k not in {"kind", "component"}}
+            self.event(component, event.get("kind", "event"), **data)
         self._write_manifest(
             status,
             answer=result.get("answer"),

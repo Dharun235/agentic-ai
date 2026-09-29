@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from pipelines.ros_agent import resume_run, start_run
-from pipelines.ros_agent.pipeline import _parse_plan, _schedule
+from pipelines.ros_agent.pipeline import _answer_covers_results, _parse_plan, _schedule
 
 
 def run_test(command):
@@ -86,6 +86,13 @@ def test_scheduler_substitutes_results_before_dependent_execution():
     assert observations[1]["output"] == "type for /parameter_events\n/rosout"
 
 
+def test_joiner_coverage_rejects_missing_lines_from_multiline_results():
+    results = [{"output": "service_one\nservice_two\nservice_three"}]
+
+    assert not _answer_covers_results("service_one; service_two", results)
+    assert _answer_covers_results("service_one; service_two; service_three", results)
+
+
 def test_llmcompiler_runs_independent_tasks_then_joiner():
     planner = '{"tasks":[{"id":1,"tool":"list_ros_nodes","arguments":{},"depends_on":[]},{"id":2,"tool":"list_ros_topics","arguments":{},"depends_on":[]}]} '
     joiner = '{"action":"final","response":"Nodes: /ros_agent_demo_node; Topics: /parameter_events, /rosout","feedback":""}'
@@ -98,6 +105,22 @@ def test_llmcompiler_runs_independent_tasks_then_joiner():
     assert state.status == "complete"
     assert {item["tool"] for item in state.observations} == {"list_ros_nodes", "list_ros_topics"}
     assert "Nodes:" in state.answer
+
+
+def test_joiner_falls_back_to_exact_results_when_it_omits_list_entries():
+    planner = '{"tasks":[{"id":1,"tool":"list_ros_nodes","arguments":{},"depends_on":[]},{"id":2,"tool":"list_ros_topics","arguments":{},"depends_on":[]}]}'
+    incomplete = '{"action":"final","response":"/ros_agent_demo_node and /parameter_events","feedback":""}'
+    with (
+        patch("pipelines.ros_agent.pipeline.MCPRos", FakeMCP),
+        patch("pipelines.ros_agent.pipeline.catalog.retrieve", side_effect=cards_for),
+        patch("pipelines.ros_agent.pipeline.ollama.chat", side_effect=[streamed(planner), response(incomplete), response(incomplete)]),
+    ):
+        state = run_test("List ROS2 nodes and topics.")
+
+    assert state.status == "complete"
+    assert "[list_ros_topics]" in state.answer
+    assert "/parameter_events\n/rosout" in state.answer
+    assert any(event.get("coverage_fallback") for event in state.steps)
 
 
 def test_joiner_replans_with_bounded_feedback():

@@ -28,6 +28,18 @@ def test_named_run_is_unique(tmp_path):
         RunStore(tmp_path / "runs", "same-name", "two")
 
 
+def test_finalize_preserves_event_component_without_keyword_collision(tmp_path):
+    store = RunStore(tmp_path / "runs", "cancelled-run", "List nodes")
+    store.finalize({
+        "status": "cancelled",
+        "events": [{"kind": "cancelled", "component": "approval"}],
+    })
+
+    event = json.loads((store.path / "events.jsonl").read_text().splitlines()[-1])
+    assert event["component"] == "approval"
+    assert event["kind"] == "cancelled"
+
+
 def test_run_repository_exposes_state_views(tmp_path):
     store = RunStore(tmp_path / "runs", "debug-run", "List nodes")
     store.event("planner", "plan_validated", task_count=1)

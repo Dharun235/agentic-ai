@@ -432,11 +432,11 @@ def _requested_result_ids(response: Any) -> list[int]:
 
 
 def _answer_covers_results(answer: str, results: list[dict]) -> bool:
-    """Reject joiner summaries that silently drop one fetched result."""
+    """Reject joiner answers that omit any line of fetched evidence."""
     normalized = answer.casefold()
     for result in results:
         lines = [line.strip() for line in result["output"].splitlines() if line.strip()]
-        if lines and not any(line.casefold() in normalized for line in lines[:2]):
+        if any(line.casefold() not in normalized for line in lines):
             return False
     return True
 
