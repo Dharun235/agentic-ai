@@ -1,4 +1,4 @@
-"""Check host and live Compose prerequisites without third-party packages."""
+"""Check local ROS 2 agent prerequisites without third-party packages."""
 
 from __future__ import annotations
 
@@ -14,10 +14,9 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_FILES = (
-    "Dockerfile",
-    "docker-compose.yml",
     "pyproject.toml",
     "pipelines/ros/tool_catalog.md",
+    "web_app.py",
 )
 
 
@@ -33,25 +32,11 @@ def report(label: str, passed: bool, detail: str) -> bool:
 
 
 def check_host() -> bool:
-    """Check Docker, Compose, repository files, and Compose syntax."""
+    """Check files needed by the native app setup."""
     ok = True
-    docker = shutil.which("docker")
-    ok &= report("docker command", docker is not None, docker or "not found")
-    if not docker:
-        return False
-
-    version = command(["docker", "version", "--format", "{{.Server.Version}}"])
-    ok &= report("Docker daemon", version.returncode == 0, (version.stdout or version.stderr).strip())
-
-    compose = command(["docker", "compose", "version"])
-    ok &= report("Docker Compose", compose.returncode == 0, (compose.stdout or compose.stderr).strip())
-
     for relative in REQUIRED_FILES:
         path = ROOT / relative
         ok &= report(f"required file {relative}", path.is_file(), "present" if path.is_file() else "missing")
-
-    config = command(["docker", "compose", "config", "--quiet"])
-    ok &= report("Compose configuration", config.returncode == 0, "valid" if config.returncode == 0 else config.stderr.strip())
     return bool(ok)
 
 
@@ -59,20 +44,14 @@ def check_url(label: str, url: str) -> bool:
     """Check an HTTP endpoint."""
     try:
         with urlopen(url, timeout=3) as response:
-            return report(label, 200 <= response.status < 500, f"HTTP {response.status}")
+            return report(label, 200 <= response.status < 400, f"HTTP {response.status}")
     except Exception as error:
         return report(label, False, str(error))
 
 
-def local_url(value: str, default: str) -> str:
-    """Map the container-only host alias to the host loopback for checks."""
-    value = value or default
-    return value.replace("host.docker.internal", "127.0.0.1")
-
-
 def check_ollama() -> bool:
     """Check Ollama and the two models required by the planner and RAG."""
-    url = local_url(os.getenv("OLLAMA_HOST", ""), "http://127.0.0.1:11434").rstrip("/")
+    url = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
     try:
         with urlopen(f"{url}/api/tags", timeout=3) as response:
             payload = json.load(response)
@@ -132,29 +111,11 @@ def check_ros() -> bool:
 
 
 def check_running() -> bool:
-    """Check the app and native ROS2, Ollama, and Phoenix services."""
+    """Check the app and native ROS 2, Ollama, and Phoenix services."""
     ok = True
-    ps = command(["docker", "compose", "ps", "--format", "json"])
-    if ps.returncode != 0:
-        ok &= report("Compose stack", False, ps.stderr.strip())
-    else:
-        rows = []
-        for line in ps.stdout.splitlines():
-            try:
-                rows.append(json.loads(line))
-            except json.JSONDecodeError:
-                continue
-        row = next((item for item in rows if item.get("Service") == "agent"), {})
-        state = row.get("State", "not running")
-        health = row.get("Health", "")
-        ok &= report(
-            "agent service",
-            state == "running" and health in {"", "healthy"},
-            f"{state} {health}".strip(),
-        )
-
-    ok &= check_url("agent UI", "http://127.0.0.1:8000/observability")
-    ok &= check_url("Phoenix", local_url(os.getenv("PHOENIX_HEALTH_URL", ""), "http://127.0.0.1:6006") + "/v1/healthz")
+    ok &= check_url("agent", "http://127.0.0.1:8000/observability")
+    phoenix_url = os.getenv("PHOENIX_HEALTH_URL", "http://127.0.0.1:6006").rstrip("/")
+    ok &= check_url("Phoenix", phoenix_url + "/v1/healthz")
     ok &= check_ollama()
     ok &= check_ros()
     return bool(ok)
@@ -163,7 +124,7 @@ def check_running() -> bool:
 def main() -> int:
     """Run prerequisite checks and return a shell-friendly exit code."""
     parser = argparse.ArgumentParser(description="Check ROS2 agent prerequisites")
-    parser.add_argument("--running", action="store_true", help="also require the Compose stack to be running")
+    parser.add_argument("--running", action="store_true", help="also check live app and service endpoints")
     args = parser.parse_args()
 
     print("ROS2 agent prerequisite check")
@@ -171,7 +132,7 @@ def main() -> int:
     if args.running:
         ok &= check_running()
     elif not args.running:
-        print("INFO  live services: skipped; use --running after docker compose up")
+        print("INFO  live services: skipped; use --running after starting the services")
     print("READY" if ok else "NOT READY")
     return 0 if ok else 1
 

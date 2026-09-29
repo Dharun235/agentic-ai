@@ -462,6 +462,25 @@ def _join(state: GraphState, runtime: Runtime[RunContext]) -> GraphState:
                     "events": _event(state, "join_replan", feedback=reason),
                 }
             return {"status": "failed", "error": f"Tool execution failed after {MAX_REPLANS} replans: {reason}", "events": _event(state, "join_failed", reason=reason)}
+        observations = state.get("observations", [])
+        if len(observations) == 1:
+            result = _fetch_result(state, observations[0]["task_id"])
+            runtime.context.store.model_call(
+                "joiner.answer",
+                {"goal": state["goal"], "fetched_result_ids": [result["task_id"]]},
+                response=result["output"],
+                deterministic=True,
+            )
+            return {
+                "answer": result["output"],
+                "status": "complete",
+                "events": _event(
+                    state,
+                    "join_final",
+                    fetched_result_ids=[result["task_id"]],
+                    deterministic=True,
+                ),
+            }
         with telemetry.span("agent.joiner.index", **{"model.name": settings["chat_model"], "result.count": len(state.get("observations", []))}):
             index_response = runtime.context.ollama.chat(
                 model=settings["chat_model"],
@@ -480,16 +499,6 @@ def _join(state: GraphState, runtime: Runtime[RunContext]) -> GraphState:
         ids = requested or [item["task_id"] for item in state.get("observations", [])]
         exact_results = [_fetch_result(state, task_id) for task_id in dict.fromkeys(ids)]
         fetched_ids = [item["task_id"] for item in exact_results]
-        # One successful MCP observation is already exact evidence. Sending it
-        # through a tiny local model only creates opportunities for commentary
-        # or factual distortion (for example, calling one list item incomplete).
-        if len(exact_results) == 1 and not _failure_marker(exact_results[0]["output"]):
-            runtime.context.store.model_call("joiner.answer", {"goal": state["goal"], "fetched_result_ids": fetched_ids}, response=exact_results[0]["output"], deterministic=True)
-            return {
-                "answer": exact_results[0]["output"],
-                "status": "complete",
-                "events": _event(state, "join_final", fetched_result_ids=fetched_ids, deterministic=True),
-            }
         final_messages = [
             {"role": "system", "content": JOINER_PROMPT},
             {"role": "user", "content": f"Goal: {state['goal']}\nFetched exact raw results:\n{json.dumps(exact_results, ensure_ascii=False, indent=2)}"},

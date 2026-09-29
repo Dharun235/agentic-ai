@@ -23,7 +23,7 @@ class ToolCatalog:
 
     def __init__(self, path: Path = CATALOG_PATH):
         self.path = path
-        self.ollama = Client(host=settings["ollama_host"], timeout=60)
+        self.ollama = Client(host=settings["ollama_host"], timeout=180)
         self.db = chromadb.PersistentClient(path=settings["chroma_path"])
 
     def _cards(self) -> list[dict[str, str]]:
@@ -56,7 +56,10 @@ class ToolCatalog:
         source_hash = hashlib.sha256(self.path.read_bytes()).hexdigest()
         try:
             collection = self.db.get_collection(COLLECTION_NAME)
-            if collection.metadata.get("catalog_hash") != source_hash:
+            if (
+                collection.metadata.get("catalog_hash") != source_hash
+                or collection.count() == 0
+            ):
                 self.db.delete_collection(COLLECTION_NAME)
                 collection = None
         except Exception:

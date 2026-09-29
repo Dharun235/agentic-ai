@@ -2,9 +2,8 @@
 
 Agent scope: ROS 2 graph discovery and one safe demo-node lifecycle. No robot behavior.
 
-The native server runs beside ROS2 and exposes the tools over MCP Streamable
-HTTP. Tools call the live host `ros2` CLI; they do not inspect a container or a
-cached graph.
+The MCP server runs beside ROS 2 and exposes tools over Streamable HTTP when
+needed. Tools call the live `ros2` CLI; they do not use a cached graph.
 
 The catalog is the agent's tool map. Chroma and Ollama embeddings retrieve relevant
 guidance and candidate MCP schemas for the LLMCompiler planner. The planner emits

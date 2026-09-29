@@ -1,42 +1,31 @@
 # ROS2 agent
 
-Goal-driven ROS2 inspection agent with a web UI. The stack uses LangGraph for
-the run lifecycle, Chroma/Ollama for capability retrieval, the project MCP
-server for ROS2 execution, SQLite for per-run state, and Phoenix for compulsory
-tracing.
+Goal-driven ROS 2 inspection agent with a web UI. It uses Ollama for planning
+and tool search, MCP to run read-only ROS 2 queries, SQLite for run state, and
+Phoenix for tracing.
 
-## Setup
+## Quick start
 
-The supported deployment is deliberately narrow:
+Run the app directly on the ROS 2 host. Use Ubuntu 24.04, ROS 2 Jazzy, and
+Python 3.10 or newer.
 
-```text
-native ROS2 + native MCP server + native Ollama + native Phoenix
-                                      ↑
-                              Docker agent UI
-```
+### 1. Install ROS 2
 
-Docker runs only the application. ROS2 stays on the host so it can inspect the
-user's real ROS graph. The checker is dependency-free and uses only Python's
-standard library.
-
-### 1. Install ROS2
-
-Install ROS2 Jazzy using the [official installation guide](https://docs.ros.org/en/jazzy/Installation.html).
-The recommended supported host is Ubuntu 24.04. On every shell that runs the
-MCP server, source ROS2 first:
+Follow the [ROS 2 Jazzy installation guide](https://docs.ros.org/en/jazzy/Installation.html).
+Open a terminal and source ROS 2 before starting the app:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 ros2 --help
 ```
 
-The MCP server must run on the same host/environment as ROS2. It executes the
-actual `ros2` CLI and returns live output.
+The app starts its MCP server as a local subprocess. It inherits this shell's
+ROS 2 environment and queries the ROS graph visible to that shell.
 
-### 2. Install Python dependencies
+### 2. Install the app
 
-Python 3.10 or newer is required. Create the environment and install the
-project from the single dependency declaration in `pyproject.toml`:
+From the repository root, create a virtual environment and install the project.
+`pyproject.toml` is the dependency source; `pip install -e .` installs it.
 
 ```bash
 python3 -m venv .venv
@@ -45,120 +34,90 @@ python -m pip install --upgrade pip
 python -m pip install -e .
 ```
 
-This installs MCP, LangGraph, Chroma, Ollama's Python client, FastAPI,
-Phoenix OpenTelemetry integration, and the remaining application libraries.
-ROS2 itself is not a pip dependency; install it from the official ROS2 guide.
-
 ### 3. Install and start Ollama
 
-Install Ollama from the [official download page](https://ollama.com/download):
+Install Ollama from [ollama.com](https://ollama.com/download). Keep Ollama
+running in its own terminal or as a service. Pull both required models:
 
 ```bash
-ollama serve
 ollama pull qwen3:0.6b
 ollama pull qwen3-embedding:0.6b
-```
-
-Verify it:
-
-```bash
 curl http://127.0.0.1:11434/api/tags
 ```
 
-### 4. Install and start Phoenix
+Set `OLLAMA_HOST` if Ollama listens somewhere else.
 
-Follow the [official local Phoenix deployment guide](https://arize.com/docs/phoenix/self-hosting/deployments/local).
-With `uv`:
+### 4. Start Phoenix
+
+Phoenix is required for app runs. Install `uv` if needed, then run Phoenix in a
+separate terminal:
 
 ```bash
+python -m pip install uv
 uvx arize-phoenix serve
 ```
 
-Phoenix must be available at `http://127.0.0.1:6006`.
+Keep it running at <http://127.0.0.1:6006>. Set
+`PHOENIX_COLLECTOR_ENDPOINT`, `PHOENIX_HEALTH_URL`, or `PHOENIX_UI_URL` to
+change its endpoints.
 
-### 5. Start the native ROS2 MCP server
+### 5. Start the web app
 
-In a shell where ROS2 is sourced and the virtual environment is active:
+In another terminal, source ROS 2 and activate the environment again. Then run:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 source .venv/bin/activate
-python pipelines/ros/mcp_server.py \
-  --transport streamable-http \
-  --host 0.0.0.0 \
-  --port 8001
+uvicorn web_app:app --host 127.0.0.1 --port 8000
 ```
 
-This exposes the official MCP Streamable HTTP endpoint at:
-`http://127.0.0.1:8001/mcp`.
+Open <http://127.0.0.1:8000>. Enter a unique session name and task, review the
+plan, then approve it. The local MCP server starts automatically for each run.
+For remote MCP, set `ROS_MCP_URL` to its Streamable HTTP `/mcp` endpoint before
+starting the app.
 
-### 6. Start the Docker application
+### Optional: run MCP over HTTP
 
-Docker Desktop works on macOS and Windows; Docker Engine works on Linux.
-Build dependencies are installed inside the app image from `pyproject.toml`.
+Use this only when the app cannot start MCP as a local subprocess. Start the MCP
+server in a ROS 2-sourced terminal:
 
 ```bash
-./run.sh native
+source /opt/ros/jazzy/setup.bash
+source .venv/bin/activate
+python pipelines/ros/mcp_server.py --transport streamable-http --host 127.0.0.1 --port 8001
 ```
 
-Open <http://localhost:8000>. Phoenix is at <http://localhost:6006>.
+Set `ROS_MCP_URL=http://127.0.0.1:8001/mcp` in the app terminal.
 
-The `host.docker.internal` mapping is configured in Compose so the container
-can reach native Ollama, Phoenix, and the native MCP server. On Linux Docker
-Engine, the same mapping is provided through `host-gateway`.
+## Check setup
 
-The UI requires a unique name for every task. It creates a plan, validates the
-MCP tools and arguments, waits for approval, executes the scheduled plan, and
-shows the final answer and saved run directory. `Stop` requests cooperative
-cancellation. A terminal run cannot be reused; start a new named session.
-
-Stop the stack while preserving data:
+Run the prerequisite checker after starting Ollama, Phoenix, and the app. Source
+ROS 2 first so it can check local ROS discovery.
 
 ```bash
-docker compose down
+source /opt/ros/jazzy/setup.bash
+python scripts/check_prerequisites.py
+python scripts/check_prerequisites.py --running
 ```
 
-The bind-mounted `data/` directory contains named runs. Ollama and Phoenix keep
-their own data according to how those prerequisite services were installed.
+Run repository checks with the development extra:
+
+```bash
+python -m pip install -e '.[dev]'
+pytest -q
+python -m compileall -q pipelines tests scripts web_app.py
+```
 
 ## Run data and debugging
 
-Each task is isolated under `data/runs/<name>/`:
+Each task is isolated under `data/runs/<name>/`. Files include lifecycle
+metadata, validated plan, raw MCP observations, progress events, model-call
+metadata, SQLite checkpoints, and exact results. Chroma's tool catalog index
+is stored under `data/chroma/` by default.
 
-```text
-manifest.json       lifecycle and final status
-plan.json            validated scheduled plan
-observations.json    raw MCP evidence by task
-events.jsonl         state/component progress events
-model_calls.jsonl    model request metadata and bounded responses
-state.sqlite         LangGraph checkpoint state
-results/task-N.json  exact raw result for each executor task
-```
-
-The UI exposes the plan, observations, result, events, debug data, and
-observability trace links through its API. Phoenix traces every run, including
-RAG, planning, validation, approval, MCP execution, and final joining. A run
-does not start when Phoenix is unavailable.
-
-## Architecture
-
-```text
-browser → FastAPI → LangGraph plan/validate/approve → DAG scheduler → MCP → ROS2
-                    ↘ Chroma/Ollama capability retrieval       ↘ Phoenix traces
-```
-
-The application image contains only the Python agent and its Python
-dependencies. It does not contain ROS2, Ollama, or Phoenix. Streamable HTTP is
-the deployment transport.
-
-The tool catalog at
-[`pipelines/ros/tool_catalog.md`](pipelines/ros/tool_catalog.md) is the
-planner's capability map; live MCP schemas remain the execution authority.
-
-The supported inspection tools and their exact arguments are documented in the
-catalog. Runtime ROS2 output is evidence, not RAG memory. Raw results remain
-outside model prompts until the joiner fetches the exact task IDs needed for the
-answer. Each question has its own MCP session and SQLite checkpoint.
+Phoenix traces retrieval, planning, validation, approval, MCP execution, and
+answer generation. Runs do not start if Phoenix is unavailable. Runtime ROS 2
+output is evidence, not RAG memory.
 
 ## HTTP API
 
@@ -177,25 +136,5 @@ GET  /runs/{name}/debug
 GET  /runs/{name}/observability
 ```
 
-## Development checks
-
-The dependency-free checker reports missing Docker/Compose, files, Compose
-validity, agent health, Phoenix, Ollama/models, and the native ROS2 MCP
-endpoint (or local ROS2 when no endpoint is configured).
-
-```bash
-python scripts/check_prerequisites.py
-python scripts/check_prerequisites.py --running
-```
-
-For repository-only checks:
-
-```bash
-pytest -q
-python -m compileall -q pipelines tests scripts web_app.py
-git diff --check
-docker compose config
-```
-
 See [`pipelines/ros/tool_catalog.md`](pipelines/ros/tool_catalog.md) for the
-full MCP catalog.
+read-only MCP tools and their arguments.

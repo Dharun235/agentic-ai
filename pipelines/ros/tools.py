@@ -56,7 +56,7 @@ def _run_local(args: list[str], timeout: int = 15) -> str:
 
 
 def _run_ros2_process(args: list[str], timeout: int = 15) -> str:
-    """Run bounded ROS2 process, honoring configured Docker execution."""
+    """Run bounded native ROS 2 process."""
     command = _command(args)
     if shutil.which(command[0]) is None:
         return f"ROS 2 unavailable: `{command[0]}` command not found."

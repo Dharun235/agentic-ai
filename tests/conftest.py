@@ -1,4 +1,4 @@
-"""Keep unit tests local; live Phoenix availability is covered by Compose smoke tests."""
+"""Keep unit tests independent of live Phoenix availability."""
 
 from contextlib import contextmanager
 

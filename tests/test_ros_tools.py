@@ -46,7 +46,7 @@ def test_catalog_parser_creates_tool_cards_without_embedding_placeholders(tmp_pa
     path = tmp_path / "catalog.md"
     path.write_text(
         "# Topics\n\n- `ros_topic_type(topic)`: Return topic type.\n"
-        "- `ROS2_DOCKER_CONTAINER`: config only.\n",
+        "- `ROS_AGENT_CONFIG`: config only.\n",
         encoding="utf-8",
     )
     cards = ToolCatalog(path=path)._cards()

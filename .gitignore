@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+.tox/
+.nox/
+.hypothesis/
 
 # Generated runtime data
 data/
@@ -28,3 +31,20 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+
+# ROS 2 / colcon workspace output
+install/
+log/
+
+# Local database files
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite3-wal
+*.sqlite-shm
+*.sqlite3-shm
+*.sqlite-journal
+*.sqlite3-journal
+*.db
+*.db-wal
+*.db-shm
